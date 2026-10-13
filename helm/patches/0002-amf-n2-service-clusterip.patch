@@ -1,0 +1,14 @@
+diff --git a/charts/free5gc/charts/free5gc-amf/templates/amf-service.yaml b/charts/free5gc/charts/free5gc-amf/templates/amf-service.yaml
+index 13f6d02..d96afd7 100644
+--- a/charts/free5gc/charts/free5gc-amf/templates/amf-service.yaml
++++ b/charts/free5gc/charts/free5gc-amf/templates/amf-service.yaml
+@@ -46,7 +46,9 @@ spec:
+   ports:
+     - name: n2
+       port: {{ $.Values.global.amf.service.ngap.port }}
++      {{- if eq $.Values.global.amf.service.ngap.type "NodePort" }}
+       nodePort: {{ $.Values.global.amf.service.ngap.nodeport }}
++      {{- end }}
+       protocol: {{ $.Values.global.amf.service.ngap.protocol }}
+   selector:
+     project: {{ $.Values.global.projectName }}

@@ -1,0 +1,19 @@
+# Gitleaks configuration: the full default ruleset, plus exclusions for
+# git-ignored, generated directories that are never committed.
+#
+# .charts/ holds the vendored upstream chart, which ships PUBLICLY KNOWN TLS
+# private keys (charts/free5gc/cert/*.key); .render/ contains the same keys in
+# locally rendered Secrets. Both are upstream test material, git-ignored and
+# never committed; see docs/security.md ("Upstream TLS material").
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated, git-ignored directories"
+paths = [
+  '''(^|/)\.charts/''',
+  '''(^|/)\.render/''',
+  '''(^|/)\.evidence/''',
+  '''(^|/)\.terraform/''',
+]

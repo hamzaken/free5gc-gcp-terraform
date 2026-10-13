@@ -1,0 +1,25 @@
+diff --git a/charts/ueransim/templates/ue/ue-deployment.yaml b/charts/ueransim/templates/ue/ue-deployment.yaml
+index 276dd81..be4b426 100644
+--- a/charts/ueransim/templates/ue/ue-deployment.yaml
++++ b/charts/ueransim/templates/ue/ue-deployment.yaml
+@@ -49,6 +49,10 @@ spec:
+         volumeMounts:
+         - mountPath: {{ .volume.mount }}
+           name: {{ .volume.name }}
++        {{- with .extraVolumeMounts }}
++        # free5gc-gcp-terraform patch 0005: optional extra mounts.
++        {{- toYaml . | nindent 8 }}
++        {{- end }}
+         resources:
+             {{- toYaml .resources | nindent 12 }}
+       dnsPolicy: ClusterFirst
+@@ -70,5 +74,9 @@ spec:
+           - key: wrapper.sh
+             path: wrapper.sh
+             mode: 0755
++      {{- with .extraVolumes }}
++      # free5gc-gcp-terraform patch 0005: optional extra volumes.
++      {{- toYaml . | nindent 6 }}
++      {{- end }}
+ {{- end }}
+ {{- end }}

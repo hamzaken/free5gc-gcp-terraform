@@ -1,0 +1,29 @@
+# Copy to terraform.tfvars (git-ignored) and edit.
+# Network ranges and subscribers are configured in config/*.yaml, not here.
+
+project_id = "my-free5gc-lab"
+
+# region = "europe-west9"
+# zone   = "europe-west9-a"
+# name_prefix = "free5gc"
+
+# general_pool = {
+#   machine_type = "e2-standard-4"
+#   node_count   = 1
+# }
+# upf_pool = {
+#   machine_type = "e2-standard-2"
+#   node_count   = 1
+# }
+
+# Optional: extra CIDRs (e.g. your VPN) allowed on the control plane private
+# IP endpoint. Admin access normally uses the IAM-protected DNS endpoint.
+# authorized_networks = [
+#   { cidr_block = "192.0.2.0/24", display_name = "office-vpn" },
+# ]
+
+# Cost/visibility trade-offs (see README "Costs"):
+# logging_components   = ["SYSTEM_COMPONENTS"]   # drop workload logs
+# enable_vpc_flow_logs = false
+# enable_secrets_encryption = true
+# enable_dockerhub_proxy    = true

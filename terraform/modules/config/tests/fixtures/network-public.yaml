@@ -1,0 +1,43 @@
+# Network addressing for the deployment.
+#
+# Every value below is an illustrative default. Change them to fit your VPC
+# plan. All ranges are validated by terraform/modules/config before anything
+# is created (valid CIDR, canonical network address, no overlap, allowed
+# private space, enough capacity for the node pools). See docs/networking.md.
+
+gcp:
+  # Primary subnet range. Node VMs get their addresses from here.
+  node_cidr: "10.10.0.0/24"
+  # Secondary range for Pod IPs (VPC-native / alias IPs).
+  pod_cidr: "10.20.0.0/20"
+  # Secondary range for ClusterIP Services.
+  service_cidr: "8.8.0.0/20"
+  # Max Pods per node. GKE carves a per-node block of 2^(32-M) addresses from
+  # pod_cidr, where M = 31 - ceil(log2(max_pods_per_node)). 64 -> /25 per node.
+  max_pods_per_node: 64
+
+free5gc:
+  # UE PDU-session address pool (handed out by the SMF, routed by the UPF).
+  # This is NOT a Kubernetes range: UE addresses only exist inside GTP-U
+  # tunnels and the UPF's uesimtun/upfgtp devices. It must not overlap any
+  # VPC range above.
+  ue_cidr: "10.60.0.0/16"
+  # Data Network Name served by the SMF/UPF. Lowercase letters, digits and
+  # hyphens only (no dots, see docs/networking.md).
+  dnn: "internet"
+  # DNS server announced to UEs in the PDU Session Establishment Accept.
+  ue_dns_ipv4: "8.8.8.8"
+
+ran:
+  # Tracking Area Code broadcast by the simulated gNB (0..16777215).
+  tac: 1
+  # NR Cell Identity (36-bit) and gNB ID length, passed to UERANSIM.
+  nci: "0x000000010"
+  gnb_id_length: 32
+
+# Advanced (reserved, not implemented in this release):
+# Dedicated N2/N3/N4/N6 networks require Multus + ipvlan/macvlan, which GKE
+# Dataplane V2 does not support out of the box. The default topology carries
+# every 5G interface over the Pod network. See docs/networking.md.
+interfaces:
+  multus_enabled: false

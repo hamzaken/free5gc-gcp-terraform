@@ -1,0 +1,14 @@
+# scripts/deploy.sh fills these from `terraform -chdir=terraform/infra output`
+# automatically. Only create terraform.tfvars (git-ignored) if you run this
+# stage by hand. None of these values is secret.
+
+project_id           = "my-free5gc-lab"
+region               = "europe-west9"
+cluster_dns_endpoint = "gke-0123456789abcdef-123456789012.europe-west9.gke.goog"
+image_registry       = "europe-west9-docker.pkg.dev/my-free5gc-lab/free5gc-dockerhub"
+
+secret_resource_names = {
+  mongodb_root_password  = "projects/my-free5gc-lab/locations/europe-west9/secrets/free5gc-mongodb-root-password"
+  mongodb_app_password   = "projects/my-free5gc-lab/locations/europe-west9/secrets/free5gc-mongodb-app-password"
+  subscriber_credentials = "projects/my-free5gc-lab/locations/europe-west9/secrets/free5gc-subscriber-credentials"
+}

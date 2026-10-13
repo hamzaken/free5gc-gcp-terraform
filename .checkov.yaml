@@ -1,0 +1,6 @@
+# Checkov settings for CI. Accepted findings are suppressed INLINE, next to
+# the resource, with a justification (#checkov:skip=<ID>:<reason>).
+compact: true
+framework:
+  - terraform
+quiet: true

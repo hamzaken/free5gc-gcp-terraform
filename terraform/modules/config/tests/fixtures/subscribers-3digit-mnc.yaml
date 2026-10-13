@@ -1,0 +1,17 @@
+subscribers:
+  count: 2
+  mcc: "310"
+  mnc: "410"
+  starting_imsi: "310410000000009"
+  dnn: "internet"
+  sst: 10
+  sd: "ABCDEF"
+  authentication_method: "5G_AKA"
+  authentication_management_field: "8000"
+  sequence_number: "000000000023"
+  ue_ambr_uplink: "1 Gbps"
+  ue_ambr_downlink: "2 Gbps"
+  session_ambr_uplink: "1000 Mbps"
+  session_ambr_downlink: "1000 Mbps"
+  default_5qi: 9
+  charging_method: "Offline"

@@ -1,0 +1,23 @@
+diff --git a/charts/free5gc/charts/free5gc-nrf/templates/nrf-deployment.yaml b/charts/free5gc/charts/free5gc-nrf/templates/nrf-deployment.yaml
+index 161a6e8..4366f48 100644
+--- a/charts/free5gc/charts/free5gc-nrf/templates/nrf-deployment.yaml
++++ b/charts/free5gc/charts/free5gc-nrf/templates/nrf-deployment.yaml
+@@ -109,18 +109,6 @@ spec:
+             value: {{ if dig "mongodbAuth" "enabled" false $.Values.global }}"$(MONGODB_URI)"{{ else }}mongodb://{{ $.Values.mongodb.service.name }}/free5gc{{ end }}
+           - name: GIN_MODE
+             value: release
+-        {{- if .readinessProbe.enabled }}
+-        readinessProbe:
+-          httpGet:
+-            path: /nnrf-nfm/v1/
+-            scheme: HTTP
+-            port: 80
+-          initialDelaySeconds: {{ .readinessProbe.initialDelaySeconds }}
+-          periodSeconds: {{ .readinessProbe.periodSeconds }}
+-          timeoutSeconds: {{ .readinessProbe.timeoutSeconds }}
+-          failureThreshold: {{ .readinessProbe.failureThreshold }}
+-          successThreshold: {{ .readinessProbe.successThreshold }}
+-        {{- end }}
+         volumeMounts:
+         {{- if dig "mongodbAuth" "enabled" false $.Values.global }}
+         - mountPath: /free5gc/runtime

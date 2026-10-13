@@ -1,0 +1,13 @@
+# Optional remote state. Copy to backend.tf, then:
+#   terraform init -backend-config="bucket=<your-private-state-bucket>"
+#
+# Bucket requirements (create it once, outside this stack):
+#   - uniform bucket-level access, public access prevention enforced
+#   - object versioning enabled (recover from a bad apply)
+#   - IAM limited to the administrators who run Terraform
+#   - optionally a CMEK key
+terraform {
+  backend "gcs" {
+    prefix = "free5gc-gcp-terraform/infra"
+  }
+}

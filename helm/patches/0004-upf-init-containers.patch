@@ -1,0 +1,17 @@
+diff --git a/charts/free5gc/charts/free5gc-upf/templates/upf/upf-deployment.yaml b/charts/free5gc/charts/free5gc-upf/templates/upf/upf-deployment.yaml
+index 0b8bd72..ce4e171 100644
+--- a/charts/free5gc/charts/free5gc-upf/templates/upf/upf-deployment.yaml
++++ b/charts/free5gc/charts/free5gc-upf/templates/upf/upf-deployment.yaml
+@@ -62,6 +62,12 @@ spec:
+         {{- toYaml .imagePullSecrets | nindent 8 }}
+       securityContext:
+         {{- toYaml .podSecurityContext | nindent 8 }}
++      {{- with .initContainers }}
++      # free5gc-gcp-terraform patch 0004: optional init containers (used to
++      # block the UPF until a compatible gtp5g kernel module is loaded).
++      initContainers:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
+       containers:
+       - name: {{ .name }}
+         image: {{ .image.name }}:{{ .image.tag | default $.Chart.AppVersion }}

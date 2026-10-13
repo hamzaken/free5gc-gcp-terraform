@@ -1,0 +1,166 @@
+# Rendered by terraform/platform from config/*.yaml. Do not edit the output.
+# Contains no secrets: the UE launcher reads K/OPc from the "ue-credentials"
+# Secret (synced from Secret Manager) at runtime.
+#
+# Chart: free5gc-helm v4.2.2 (ueransim chart 2.0.17) + helm/patches/0005.
+
+global:
+  # The gNB resolves "<free5gcReleaseName>-<serviceName>". Using the FQDN as
+  # serviceName lets UERANSIM live in its own namespace.
+  free5gcReleaseName: ${jsonencode(free5gc_release)}
+  gnb:
+    multus:
+      enabled: false
+
+initcontainers:
+  sctp_test:
+    image: ${jsonencode(images[ "sctp_test" ].name)}
+    tag: ${jsonencode(images[ "sctp_test" ].tag)}
+
+gnb:
+  enabled: true
+  image:
+    name: ${jsonencode(images[ "ueransim" ].name)}
+    tag: ${jsonencode(images[ "ueransim" ].tag)}
+  amf:
+    n2if:
+      serviceName: ${jsonencode("free5gc-amf-amf-n2.${free5gc_namespace}.svc.cluster.local")}
+      port: 38412
+  nodeSelector: ${jsonencode(general_node_selector)}
+  configuration: |-
+    mcc: ${jsonencode(mcc)}
+    mnc: ${jsonencode(mnc)}
+    nci: ${jsonencode(nci)}
+    idLength: ${gnb_id_length}
+    tac: ${tac}
+    slices:
+      - sst: ${sst}
+        sd: 0x${sd}
+    ignoreStreamIds: true
+
+ue:
+  enabled: true
+  image:
+    name: ${jsonencode(images[ "ueransim" ].name)}
+    tag: ${jsonencode(images[ "ueransim" ].tag)}
+  nodeSelector: ${jsonencode(general_node_selector)}
+  # patch 0005: per-UE credentials (Secret) and a memory-backed scratch dir
+  # for the generated configs, so K/OPc never touch a disk-backed volume.
+  extraVolumes:
+    - name: ue-credentials
+      secret:
+        secretName: ue-credentials
+        defaultMode: 0400
+    - name: ue-run
+      emptyDir:
+        medium: Memory
+        sizeLimit: 4Mi
+  extraVolumeMounts:
+    - name: ue-credentials
+      mountPath: /ueransim/credentials
+      readOnly: true
+    - name: ue-run
+      mountPath: /ueransim/run
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  # The chart runs "<command>" then "<script>" from a bash wrapper. All the
+  # work happens in the script below, so the command is a no-op.
+  command: "true"
+  # UE profile template. __PLACEHOLDERS__ are filled per subscriber by the
+  # launcher with bash parameter expansion (no external process ever receives
+  # K or OPc as an argument).
+  configuration: |-
+    supi: "imsi-__IMSI__"
+    mcc: ${jsonencode(mcc)}
+    mnc: ${jsonencode(mnc)}
+    key: "__KEY__"
+    op: "__OPC__"
+    opType: "OPC"
+    amf: ${jsonencode(authentication_management_field)}
+    imei: "__IMEI__"
+    imeiSv: "__IMEISV__"
+    uacAic:
+      mps: false
+      mcs: false
+    uacAcc:
+      normalClass: 0
+      class11: false
+      class12: false
+      class13: false
+      class14: false
+      class15: false
+    sessions:
+      - type: "IPv4"
+        apn: ${jsonencode(dnn)}
+        slice:
+          sst: ${sst}
+          sd: 0x${sd}
+    configured-nssai:
+      - sst: ${sst}
+        sd: 0x${sd}
+    default-nssai:
+      - sst: ${sst}
+        sd: 0x${sd}
+    integrity:
+      IA1: true
+      IA2: true
+      IA3: true
+    ciphering:
+      EA1: true
+      EA2: true
+      EA3: true
+    integrityMaxRate:
+      uplink: "full"
+      downlink: "full"
+  script: |-
+    set -euo pipefail
+    CRED=/ueransim/credentials/subscribers.txt
+    TEMPLATE=/ueransim/config/ue-config.yaml
+    RUN=/ueransim/run
+    EXPECTED=${ue_count}
+    IMEI_TAC=35693803
+
+    for _ in $(seq 1 120); do [ -s "$CRED" ] && break; echo "waiting for $CRED"; sleep 5; done
+    [ -s "$CRED" ] || { echo "credential file missing; is the ue-credentials SecretSync healthy?"; exit 1; }
+
+    luhn() {
+      local s=$1 sum=0 i d len=$${#1}
+      for (( i = 0; i < len; i++ )); do
+        d=$${s:len-1-i:1}
+        if (( i % 2 == 0 )); then d=$(( d * 2 )); (( d > 9 )) && d=$(( d - 9 )); fi
+        sum=$(( sum + d ))
+      done
+      echo $(( (10 - sum % 10) % 10 ))
+    }
+
+    tmpl=$(<"$TEMPLATE")
+    umask 077
+    n=0
+    while read -r imsi k opc _; do
+      [[ -z "$imsi" || "$imsi" == \#* ]] && continue
+      if ! [[ "$imsi" =~ ^[0-9]{15}$ && "$k" =~ ^[0-9a-f]{32}$ && "$opc" =~ ^[0-9a-f]{32}$ ]]; then
+        echo "malformed credential line $((n + 1)) (content not shown)"; exit 1
+      fi
+      serial=$(printf '%06d' "$n")
+      imei="$IMEI_TAC$serial$(luhn "$IMEI_TAC$serial")"
+      cfg=$${tmpl//__IMSI__/$imsi}
+      cfg=$${cfg//__KEY__/$k}
+      cfg=$${cfg//__OPC__/$opc}
+      cfg=$${cfg//__IMEISV__/$IMEI_TAC$${serial}01}
+      cfg=$${cfg//__IMEI__/$imei}
+      printf '%s\n' "$cfg" > "$RUN/ue-$imsi.yaml"
+      ./nr-ue -c "$RUN/ue-$imsi.yaml" &
+      echo "started UE imsi-$imsi (pid $!)"
+      n=$((n + 1))
+    done < "$CRED"
+    unset k opc cfg tmpl
+
+    if [ "$n" -ne "$EXPECTED" ]; then
+      echo "WARNING: started $n UEs but config/subscribers.yaml expects $EXPECTED"
+    fi
+    # If any UE process exits, exit too so Kubernetes restarts the Pod.
+    wait -n
+    echo "a UE process exited; restarting the Pod"
+    exit 1

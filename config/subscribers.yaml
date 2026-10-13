@@ -1,0 +1,38 @@
+# Subscriber identities to provision in free5GC (UDR/MongoDB) and UERANSIM.
+#
+# Nothing in this file is secret. IMSIs and PLMN identifiers are
+# security-sensitive configuration, not authentication secrets. The per-UE
+# secrets (K and OPc) are generated at bootstrap time by
+# scripts/bootstrap-secrets.sh, stored only in Google Secret Manager, and
+# delivered to the cluster by GKE Secret Manager sync. See docs/security.md.
+#
+# Keep every scalar on its own line: scripts/bootstrap-secrets.sh reads
+# "count" and "starting_imsi" with a minimal line parser.
+
+subscribers:
+  count: 10
+  mcc: "208"
+  mnc: "93"
+  # 15 digits, must start with mcc+mnc. IMSIs are generated sequentially by
+  # incrementing the MSIN part (digits after mcc+mnc) with zero padding.
+  starting_imsi: "208930000000001"
+  dnn: "internet"
+  sst: 1
+  sd: "010203"
+
+  # Non-secret subscription profile, mirroring the free5GC WebConsole
+  # defaults for the pinned release (v4.2.2).
+  authentication_method: "5G_AKA"
+  authentication_management_field: "8000"
+  # Initial SQN. Only written when a subscriber is first created; the UDM
+  # advances it afterwards and re-provisioning never resets it.
+  sequence_number: "000000000023"
+  ue_ambr_uplink: "1 Gbps"
+  ue_ambr_downlink: "2 Gbps"
+  session_ambr_uplink: "1000 Mbps"
+  session_ambr_downlink: "1000 Mbps"
+  default_5qi: 9
+  # Slice-level charging record created for each subscriber, as the
+  # WebConsole does. One of: "Offline", "none". (Online charging needs CHF
+  # quota management, which is out of scope.)
+  charging_method: "Offline"

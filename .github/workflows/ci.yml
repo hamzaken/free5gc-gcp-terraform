@@ -1,0 +1,141 @@
+# Pull-request and push checks. Static only: this workflow has no cloud
+# credentials and never creates billable infrastructure.
+#
+# Third-party actions are pinned to full commit SHAs. Standalone tools are
+# downloaded from their GitHub releases and verified against SHA-256 values
+# recorded here.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: "1.16.5"
+  HELM_VERSION: "v3.21.4"
+  KUBECONFORM_VERSION: "0.8.0"
+  KUBECONFORM_SHA256: "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
+  GITLEAKS_VERSION: "8.30.1"
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  TRIVY_VERSION: "0.74.0"
+  TRIVY_SHA256: "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a"
+  CHECKOV_VERSION: "3.3.13"
+
+jobs:
+  static:
+    name: Terraform, Helm render and manifest checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Install kubeconform (checksum-verified)
+        run: |
+          curl -fsSL -o /tmp/kc.tgz "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  /tmp/kc.tgz" | sha256sum -c -
+          sudo tar -xzf /tmp/kc.tgz -C /usr/local/bin kubeconform
+
+      - name: Static validation (fmt, validate, terraform test, IMSI, charts, render, checks, kubeconform, shellcheck)
+        env:
+          STRICT: "0" # gitleaks/trivy run in the security job
+        run: scripts/validate.sh
+
+      - name: Require kubeconform and shellcheck to have run
+        run: |
+          command -v kubeconform && command -v shellcheck
+
+      - name: Upload rendered manifests
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rendered-manifests
+          path: .render/*.yaml
+          retention-days: 7
+
+  provisioner:
+    name: Subscriber provisioner vs. real MongoDB (auth enabled)
+    runs-on: ubuntu-22.04
+    needs: static
+    env:
+      MONGODB_TGZ: "mongodb-linux-x86_64-ubuntu2204-7.0.9.tgz"
+      MONGODB_SHA256: "2cf223c0f901e0c6d218bdc7c607060b4155e273724e9d05babe10ce418c0391"
+      MONGOSH_TGZ: "mongosh-2.2.5-linux-x64.tgz"
+      MONGOSH_SHA256: "5f0facb8ec2e76e722cff44d97ee6f5823d572f754e212709c3015ae0f9221ed"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Install mongod and mongosh (checksum-verified)
+        run: |
+          curl -fsSL -o "/tmp/${MONGODB_TGZ}" "https://fastdl.mongodb.org/linux/${MONGODB_TGZ}"
+          echo "${MONGODB_SHA256}  /tmp/${MONGODB_TGZ}" | sha256sum -c -
+          curl -fsSL -o "/tmp/${MONGOSH_TGZ}" "https://downloads.mongodb.com/compass/${MONGOSH_TGZ}"
+          echo "${MONGOSH_SHA256}  /tmp/${MONGOSH_TGZ}" | sha256sum -c -
+          mkdir -p /tmp/mongo && tar -xzf "/tmp/${MONGODB_TGZ}" -C /tmp/mongo --strip-components=1
+          mkdir -p /tmp/mongosh && tar -xzf "/tmp/${MONGOSH_TGZ}" -C /tmp/mongosh --strip-components=1
+
+      - name: Render subscriber profile
+        run: |
+          mkdir -p .render
+          terraform -chdir=tests/render init -input=false
+          terraform -chdir=tests/render apply -auto-approve -input=false -state="$PWD/.render/render.tfstate"
+          terraform -chdir=tests/render output -state="$PWD/.render/render.tfstate" -raw subscriber_profile > .render/subscriber_profile.yaml
+
+      - name: Run provisioner tests
+        env:
+          MONGOD: /tmp/mongo/bin/mongod
+          MONGOSH: /tmp/mongosh/bin/mongosh
+        run: tests/test_provisioner_local.sh
+
+  security:
+    name: Secret scanning and IaC security scanning
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # scan the full history for leaked secrets
+
+      - name: Gitleaks (full history, checksum-verified binary)
+        run: |
+          curl -fsSL -o /tmp/gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gl.tgz" | sha256sum -c -
+          tar -xzf /tmp/gl.tgz -C /tmp gitleaks
+          /tmp/gitleaks git --no-banner --redact --config .gitleaks.toml --verbose .
+
+      - name: Trivy IaC misconfiguration scan (checksum-verified binary)
+        run: |
+          curl -fsSL -o /tmp/trivy.tgz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  /tmp/trivy.tgz" | sha256sum -c -
+          tar -xzf /tmp/trivy.tgz -C /tmp trivy
+          /tmp/trivy config --exit-code 1 --severity HIGH,CRITICAL --ignorefile .trivyignore terraform
+
+      - name: Checkov (Terraform)
+        run: |
+          python3 -m pip install --quiet "checkov==${CHECKOV_VERSION}"
+          checkov --quiet --compact --framework terraform --directory terraform --config-file .checkov.yaml

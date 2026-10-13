@@ -1,0 +1,48 @@
+# Pinned versions of every runtime artefact. Images are pinned by tag AND
+# digest ("name:tag@sha256:..."), so a re-pushed tag cannot change what runs.
+#
+# Compatibility (verified against upstream sources, see docs/architecture.md):
+#   free5GC v4.2.2 -> go-upf v1.2.10 -> requires 0.9.5 <= gtp5g < 0.10.3
+#   (intersection of the go-upf README table and the version check compiled
+#   into the v1.2.10 binary). gtp5g 0.10.2 satisfies both.
+#
+# The Helm chart source pin (free5gc-helm tag + commit) lives in
+# scripts/lib/pins.sh because it is consumed before Terraform runs.
+
+free5gc_version: "v4.2.2"
+
+gtp5g:
+  version: "0.10.2"
+  # GitHub tag archive of free5gc/gtp5g v0.10.2 (commit 952fb419130f5fc44cac1874e8183312006b746c).
+  source_url: "https://codeload.github.com/free5gc/gtp5g/tar.gz/refs/tags/v0.10.2"
+  source_sha256: "8fa39a54d2f1d443d4ced190799dcf777f017d5b9ab9ba414e331c4b9ba35123"
+  # Range accepted by the UPF gate (min inclusive, max exclusive).
+  upf_min_version: "0.9.5"
+  upf_max_version_exclusive: "0.10.3"
+
+# Images are referenced without registry. When the Artifact Registry Docker
+# Hub proxy is enabled (default), Terraform prefixes them with
+# <region>-docker.pkg.dev/<project>/<repo>/.
+images:
+  nrf: "free5gc/nrf:v4.2.2@sha256:0811f4af5038ad9fc366321cbc104910dfb09503a50d08a9184850980419e0d9"
+  amf: "free5gc/amf:v4.2.2@sha256:8fc343349f7b0d55a257ecae328bff4e2d4b6800004ed932c128b2699a3860e7"
+  smf: "free5gc/smf:v4.2.2@sha256:55043e366af867fda567156709c1dcf1ddad8827c2a246a64e0d4f6fea23718f"
+  ausf: "free5gc/ausf:v4.2.2@sha256:ec2752692a10c879cbe9c76d27377794bb26774abbb776e5a59df1f7eded3bf7"
+  udm: "free5gc/udm:v4.2.2@sha256:3c0ea07415976e01352a4d6ca65d29dfb253247548e873decb6f45246da75562"
+  udr: "free5gc/udr:v4.2.2@sha256:955b91fc7b5082e8732b578fb0df729ed730a8ae4c196304e03f946965a1eb85"
+  pcf: "free5gc/pcf:v4.2.2@sha256:b6208c82a02917cb6d620336d1245c00d875254e2c9bd28416c2e250a43453a4"
+  nssf: "free5gc/nssf:v4.2.2@sha256:beea02cca34919f86b6711cc901a008701b790cfccf3fd64d712590bb646af87"
+  chf: "free5gc/chf:v4.2.2@sha256:22705af4e06ddb8e29d8103cb5b05e637059dbfb397df27f5f0a44843335d846"
+  nef: "free5gc/nef:v4.2.2@sha256:ad98ab4a9d9aff9733f4dc12a212057abf039f992bdd4736107be28431eb0a90"
+  upf: "free5gc/upf:v4.2.2@sha256:a9fa3ed6683f4390922cef122dd7c67ed6fb8674340abf7df73f7f47d47a7e04"
+  # UERANSIM image tag shipped by the pinned ueransim chart (2.0.17).
+  ueransim: "free5gc/ueransim:v4.0.1@sha256:4a6745b0c9f0c60173833f8bef89816324e84636e220917bdc682555a299e8ba"
+  # Bitnami MongoDB image pinned by the bundled mongodb-15.6.0 chart.
+  # NOTE: "bitnamilegacy" images no longer receive updates (docs/security.md).
+  mongodb: "bitnamilegacy/mongodb:7.0.9-debian-12-r4@sha256:62fb92d0111f8dc0565b7daf8a57279fd09520020b79fd3bc550deb3ae5aee70"
+  busybox: "library/busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+  curl: "curlimages/curl:8.7.1@sha256:25d29daeb9b14b89e2fa8cc17c70e4b188bca1466086907c2d9a4b56b59d8e21"
+  # Only tag published upstream is "latest" (2023); the digest makes it immutable.
+  sctp_test: "towards5gs/sctp_test:latest@sha256:6cdf47d35388be929aa4f7adac0f78abfe47bb094ad7a87fc814cd4a4f136bbf"
+  # gtp5g builder. Must match the node OS release (GKE Ubuntu = 24.04 noble).
+  ubuntu: "library/ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55"

@@ -1,0 +1,138 @@
+diff --git a/charts/free5gc/charts/free5gc-smf/templates/smf-configmap.yaml b/charts/free5gc/charts/free5gc-smf/templates/smf-configmap.yaml
+index 46c04b6..31149e3 100644
+--- a/charts/free5gc/charts/free5gc-smf/templates/smf-configmap.yaml
++++ b/charts/free5gc/charts/free5gc-smf/templates/smf-configmap.yaml
+@@ -81,69 +81,28 @@ data:
+         upNodes: # information of userplane node (AN or UPF)
+           gNB1: # the name of the node
+             type: AN # the type of the node (AN or UPF)
+-          BranchingUPF:
++          UPF:
+             type: UPF
+-            nodeID: {{ $.Values.global.upf.multus.iupf1.n4if.ipAddress }} # UPFB N4 interface IP
++            nodeID: {{ $.Values.global.upf.multus.upf.n4if.ipAddress }} # PFCP address
+             sNssaiUpfInfos:
+               - sNssai:
+                   sst: 1
+                   sd: 010203
+                 dnnUpfInfoList:
+                   - dnn: internet
++                    pools:
++                      - cidr: {{ $.Values.global.uesubnet }}
+                     dnaiList:
+                       - mec
+             interfaces:
+               - interfaceType: N3
+                 endpoints:
+-                  - {{ $.Values.global.upf.multus.iupf1.n3if.ipAddress }}
+-                networkInstances: 
+-                  - internet
+-              - interfaceType: N9
+-                endpoints:
+-                  - {{ $.Values.global.upf.multus.iupf1.n9if.ipAddress }}
+-                networkInstances: 
+-                  - internet
+-          AnchorUPF1:
+-            type: UPF
+-            nodeID: {{ $.Values.global.upf.multus.psaupf1.n4if.ipAddress }} # UPF1 N4 interface IP
+-            sNssaiUpfInfos:
+-              - sNssai:
+-                  sst: 1
+-                  sd: 010203
+-                dnnUpfInfoList:
+-                  - dnn: internet
+-                    pools:
+-                    - cidr: 10.60.0.0/17
+-            interfaces:
+-              - interfaceType: N9
+-                endpoints:
+-                  - {{ $.Values.global.upf.multus.psaupf1.n9if.ipAddress }}
+-                networkInstances: 
+-                  - internet
+-          AnchorUPF2:
+-            type: UPF
+-            nodeID: {{ $.Values.global.upf.multus.psaupf2.n4if.ipAddress }} # UPF2 N4 interface IP
+-            sNssaiUpfInfos:
+-              - sNssai:
+-                  sst: 1
+-                  sd: 010203
+-                dnnUpfInfoList:
+-                  - dnn: internet
+-                    pools:
+-                    - cidr: 10.60.128.0/17
+-            interfaces:
+-              - interfaceType: N9
+-                endpoints:
+-                  - {{ $.Values.global.upf.multus.psaupf2.n9if.ipAddress }}
++                  - {{ $.Values.global.upf.multus.upf.n3if.ipAddress }} # UPF N3 address
+                 networkInstances: 
+                   - internet
+         links:
+           - A: gNB1
+-            B: BranchingUPF
+-          - A: BranchingUPF
+-            B: AnchorUPF1
+-          - A: BranchingUPF
+-            B: AnchorUPF2
++            B: UPF
+       locality: area1 # Name of the location where a set of AMF, SMF and UPFs are located
+       t3591:
+         enable: true # true or false
+@@ -195,41 +154,35 @@ data:
+     # This ensures SMF's nodeID matches what UPF reports in PFCP responses
+     echo "[wrapper] Resolving UPF Pod IPs from Headless Services..."
+ 
+-    # Resolve headless service names to Pod IPs with extended retry
+-    IUPF1_IP=""
+-    PSAUPF1_IP=""
+-    PSAUPF2_IP=""
++    # Wait for DNS to be ready and UPF pods to be running
++    echo "[wrapper] Waiting for UPF pods to be ready..."
++    sleep 10
++
++    # Single UPF mode: resolve only UPF
++    UPF_IP=""
+ 
+     # Retry loop with longer timeout
+     for i in 1 2 3 4 5 6 7 8 9 10; do
+-      IUPF1_IP=$(getent hosts {{ $.Release.Name }}-free5gc-upf-iupf1-service 2>/dev/null | awk '{print $1}' | head -1)
+-      PSAUPF1_IP=$(getent hosts {{ $.Release.Name }}-free5gc-upf-psaupf1-service 2>/dev/null | awk '{print $1}' | head -1)
+-      PSAUPF2_IP=$(getent hosts {{ $.Release.Name }}-free5gc-upf-psaupf2-service 2>/dev/null | awk '{print $1}' | head -1)
++      UPF_IP=$(getent hosts {{ $.Release.Name }}-free5gc-upf-upf-service 2>/dev/null | awk '{print $1}' | head -1)
+       
+-      if [ -n "$IUPF1_IP" ] && [ -n "$PSAUPF1_IP" ] && [ -n "$PSAUPF2_IP" ]; then
+-        echo "[wrapper] All UPF IPs resolved successfully"
++      if [ -n "$UPF_IP" ]; then
++        echo "[wrapper] UPF IP resolved successfully"
+         break
+       fi
+-      echo "[wrapper] Waiting for UPF DNS resolution... attempt $i (IUPF1=$IUPF1_IP, PSAUPF1=$PSAUPF1_IP, PSAUPF2=$PSAUPF2_IP)"
++      echo "[wrapper] Waiting for UPF DNS resolution... attempt $i (UPF=$UPF_IP)"
+       sleep 3
+     done
+ 
+     # Final check
+-    if [ -z "$IUPF1_IP" ] || [ -z "$PSAUPF1_IP" ] || [ -z "$PSAUPF2_IP" ]; then
+-      echo "[wrapper] WARNING: Some UPF IPs not resolved, using placeholder"
+-      [ -z "$IUPF1_IP" ] && IUPF1_IP="IUPF1_SERVICE_NAME"
+-      [ -z "$PSAUPF1_IP" ] && PSAUPF1_IP="PSAUPF1_SERVICE_NAME"
+-      [ -z "$PSAUPF2_IP" ] && PSAUPF2_IP="PSAUPF2_SERVICE_NAME"
++    if [ -z "$UPF_IP" ]; then
++      echo "[wrapper] WARNING: UPF IP not resolved, using placeholder"
++      UPF_IP="UPF_SERVICE_NAME"
+     fi
+ 
+-    echo "[wrapper] IUPF1 Pod IP: $IUPF1_IP"
+-    echo "[wrapper] PSAUPF1 Pod IP: $PSAUPF1_IP"
+-    echo "[wrapper] PSAUPF2 Pod IP: $PSAUPF2_IP"
++    echo "[wrapper] UPF Pod IP: $UPF_IP"
+ 
+-    # Replace UPF Service Name placeholders with resolved Pod IPs
+-    sed -i "s/IUPF1_SERVICE_NAME/$IUPF1_IP/g" /tmp/smfcfg.yaml
+-    sed -i "s/PSAUPF1_SERVICE_NAME/$PSAUPF1_IP/g" /tmp/smfcfg.yaml
+-    sed -i "s/PSAUPF2_SERVICE_NAME/$PSAUPF2_IP/g" /tmp/smfcfg.yaml
++    # Replace UPF Service Name placeholder with resolved Pod IP
++    sed -i "s/UPF_SERVICE_NAME/$UPF_IP/g" /tmp/smfcfg.yaml
+ 
+     echo "[wrapper] Configuration files prepared in /tmp"
+     echo "[wrapper] SMF PFCP config:"

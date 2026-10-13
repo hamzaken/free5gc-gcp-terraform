@@ -1,0 +1,16 @@
+# Trivy IaC findings accepted by design. Each entry is justified; HIGH and
+# CRITICAL findings are never ignored here. See docs/security.md.
+
+# Node pools use UBUNTU_CONTAINERD instead of COS: required for SCTP on GKE
+# Dataplane V2 (N2/NGAP) and for building/loading the gtp5g kernel module
+# (COS LoadPin blocks out-of-tree modules).
+GCP-0054
+
+# The only firewall rule in this stack is an explicit DENY-all ingress
+# baseline; the "large port range" heuristic does not apply to deny rules.
+GCP-0074
+
+# VPC flow logs are opt-in (variable enable_vpc_flow_logs) to keep the lab's
+# logging cost low; enable them for investigations.
+GCP-0029
+GCP-0076

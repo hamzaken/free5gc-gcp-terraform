@@ -1,0 +1,54 @@
+# --- Terraform ---------------------------------------------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Real variable files may contain project IDs and admin IP ranges. Only the
+# *.example files are committed.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+# Backend configuration is environment-specific (bucket names).
+backend.hcl
+!backend.hcl.example
+
+# --- Generated / vendored artefacts ------------------------------------------
+# Upstream charts are fetched at a pinned commit and patched locally by
+# scripts/fetch-charts.sh. They are never committed.
+.charts/
+# Rendered Helm output from scripts/validate.sh and tests.
+.render/
+.cache/
+
+# --- Credentials: never commit -----------------------------------------------
+*.json.key
+*-key.json
+*credentials*.json
+service-account*.json
+application_default_credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+kubeconfig
+*.kubeconfig
+.env
+.env.*
+
+# --- OS / editor -------------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Verification evidence written by scripts/verify.sh
+.evidence/
