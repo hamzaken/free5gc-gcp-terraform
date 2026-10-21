@@ -17,6 +17,7 @@ terraform.rc
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
+tfplan
 # Backend configuration is environment-specific (bucket names).
 backend.hcl
 !backend.hcl.example
