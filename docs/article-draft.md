@@ -227,7 +227,7 @@ input without echoing it, and no secret in any output.
 Testing is split into three tiers:
 
 1. **Static** (every pull request, no cloud): Terraform validation and unit
-   tests, chart rendering with the real values, and 247 assertions on the
+   tests, chart rendering with the real values, and 300+ assertions on the
    rendered manifests (digest pins, no exposed Services, no secret material in
    values, MongoDB authentication wiring, consistent Service names across the
    two charts), plus ShellCheck, Gitleaks, Trivy and Checkov.

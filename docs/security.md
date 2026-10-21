@@ -151,7 +151,7 @@ ingress NetworkPolicies in all three namespaces with explicit allows.
 | ShellCheck 0.11.0 | All scripts, plus the rendered UE launcher | Clean |
 | kubeconform 0.8.0 (`-strict`, Kubernetes 1.33 schemas) | Rendered manifests | 75/75 valid (after patch 0006 fixed an upstream duplicate key) |
 | actionlint 1.7.12 | Workflows | Clean |
-| `tests/check_rendered.py` | Rendered manifests | 247 checks pass (digest pins, no exposure, no secrets in values/ConfigMaps, MongoDB auth wiring, UPF gate, cross-chart names) |
+| `tests/check_rendered.py` | Rendered manifests | 300+ checks pass (digest pins, no exposure, no secrets in values/ConfigMaps, MongoDB auth wiring, UPF gate, cross-chart names) |
 
 ## 9. Reporting
 

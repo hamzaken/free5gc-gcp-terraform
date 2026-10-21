@@ -2,7 +2,7 @@
 # Static validation. Creates nothing in any cloud and needs no credentials.
 #
 #   1. terraform fmt / validate (all root modules)     6. helm lint + template
-#   2. terraform test (config module unit tests)       7. rendered-manifest checks
+#   2. terraform test (config + node-pool rules)       7. rendered-manifest checks
 #   3. IMSI derivation consistency (bash vs TF)        8. kubeconform (if present)
 #   4. chart fetch + patch verification                9. shellcheck (if present)
 #   5. offline render of the Helm values              10. gitleaks/trivy (if present)
@@ -44,10 +44,12 @@ for dir in terraform/infra terraform/platform terraform/modules/config terraform
   terraform -chdir="${dir}" validate -no-color >/dev/null || { terraform -chdir="${dir}" validate; die "terraform validate failed in ${dir}"; }
 done
 
-log "2/10 terraform test (config module)"
-terraform -chdir=terraform/modules/config test -no-color >"${RENDER}/tftest.log" 2>&1 \
-  || { cat "${RENDER}/tftest.log"; die "terraform test failed"; }
-grep -E '^(Success|Failure)' "${RENDER}/tftest.log" >&2
+log "2/10 terraform test (config module, infra node-pool rules with mocked providers)"
+for dir in terraform/modules/config terraform/infra; do
+  terraform -chdir="${dir}" test -no-color >"${RENDER}/tftest.log" 2>&1 \
+    || { cat "${RENDER}/tftest.log"; die "terraform test failed in ${dir}"; }
+  printf '%s: %s\n' "${dir}" "$(grep -E '^(Success|Failure)' "${RENDER}/tftest.log")" >&2
+done
 
 log "3/10 IMSI derivation consistency"
 "${REPO_ROOT}/tests/test_imsi_consistency.sh"

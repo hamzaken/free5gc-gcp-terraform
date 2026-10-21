@@ -15,11 +15,13 @@ A GCP project with billing enabled. Organisation policies that forbid
 regional Secret Manager, Ubuntu node images, disabling Secure Boot, or Cloud
 NAT will block parts of this design.
 
-Check `gcp.resourceLocations` and any machine-type allow-list before
-deploying. The first live run was in a training sandbox that only allowed
-some regions (so `region = "europe-west1"`) and rejected `e2-standard-4` (so
-`general_pool = { machine_type = "e2-standard-2", node_count = 2 }`). Both are
-plain `terraform.tfvars` settings.
+**Restricted projects (training sandboxes, strict organisations).** Check
+`gcp.resourceLocations` and any machine-type allow-list before deploying. If
+`europe-west9` or `e2-standard-4` are not allowed, start from
+`terraform/infra/terraform.tfvars.sandbox.example` (`europe-west1`, general
+pool 2 × e2-standard-2). The general pool needs **at least 4 vCPU in total**:
+one e2-standard-2 leaves Pods `Pending`, and `terraform plan` rejects that
+layout with an explanation.
 
 ## 2. IAM
 

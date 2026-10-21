@@ -8,12 +8,12 @@ and 3 need a deployed (billable) environment.
 | # | Check | Tool |
 |---|---|---|
 | 1 | Terraform formatting and validation of every root and module | `terraform fmt -check`, `terraform validate` |
-| 2 | CIDR validity, canonical form, private space, overlap, GKE capacity; IMSI generation (leading zeros, 2/3-digit MNC, overflow); PLMN/S-NSSAI/TAC encodings; image pin format | `terraform test` (16 cases) |
+| 2 | CIDR validity, canonical form, private space, overlap, GKE capacity; IMSI generation (leading zeros, 2/3-digit MNC, overflow); PLMN/S-NSSAI/TAC encodings; image pin format (16 cases). Node-pool sizing: at least 4 vCPU in the general pool, no shared-core types (6 cases, mocked providers) | `terraform test` |
 | 3 | Bash and Terraform derive identical IMSI lists | `tests/test_imsi_consistency.sh` |
 | 4 | Upstream tag still points to the pinned commit; patches apply cleanly | `scripts/fetch-charts.sh` |
 | 5 | Offline render of the exact Helm values the platform stage deploys | `tests/render` harness |
 | 6 | Charts lint and render with those values | `helm lint`, `helm template` |
-| 7 | 247 assertions on rendered manifests (digest pins, exposure, MongoDB auth wiring, no secrets in values/ConfigMaps, UPF gate, cross-chart Service names) | `tests/check_rendered.py` |
+| 7 | 300+ assertions on rendered manifests (digest pins, exposure, MongoDB auth wiring, no secrets in values/ConfigMaps, UPF gate, cross-chart Service names) | `tests/check_rendered.py` |
 | 8 | Kubernetes schema validation, strict mode (75 objects) | `kubeconform` |
 | 9 | Shell scripts | `shellcheck` |
 | 10 | Secrets and IaC misconfiguration | `gitleaks`, `trivy config`, `checkov` (CI security job) |
@@ -60,11 +60,12 @@ artifact.
 
 ### Live run, 2026-10-13
 
-Environment: GCP sandbox project, region `europe-west1` / zone
-`europe-west1-b` (the sandbox's organisation policy forbids `europe-west9`),
+Environment: a GCP training project with restrictive organisation policies,
+region `europe-west1` / zone `europe-west1-b` (`europe-west9` was not allowed),
 GKE **1.36.4-gke.1391002** (REGULAR), Dataplane V2, nodes **Ubuntu 24.04.4 LTS,
 kernel 6.8.0-1062-gke** (built with gcc-13). General pool 2 × e2-standard-2 (a
-sandbox policy rejects e2-standard-4), UPF pool 1 × e2-standard-2.
+machine-type allow-list rejected e2-standard-4), UPF pool 1 × e2-standard-2.
+These settings are in `terraform/infra/terraform.tfvars.sandbox.example`.
 
 | Check | Result |
 |---|---|

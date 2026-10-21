@@ -65,6 +65,7 @@ gcloud auth application-default login
 
 # 1. Configure
 cp terraform/infra/terraform.tfvars.example terraform/infra/terraform.tfvars
+#   (restricted project / training sandbox: use terraform.tfvars.sandbox.example)
 $EDITOR terraform/infra/terraform.tfvars                  # project_id
 $EDITOR config/network.yaml config/subscribers.yaml        # optional
 
@@ -123,6 +124,13 @@ generates a random pair per IMSI into Secret Manager.
 **Infrastructure** (`terraform/infra/terraform.tfvars`): project, region (default
 `europe-west9`), zone, node pool machine types and counts, Spot, logging scope,
 KMS encryption, registry proxy. See `variables.tf`.
+
+**Cluster size.** Two node pools: *general* (all NFs except the UPF, MongoDB,
+UERANSIM) and *upf* (tainted; the UPF and gtp5g only). Defaults: 1 ×
+e2-standard-4 + 1 × e2-standard-2 = **2 nodes, 6 vCPU**. Where e2-standard-4
+is not allowed, use 2 × e2-standard-2 for the general pool = **3 nodes, 6
+vCPU** (`terraform.tfvars.sandbox.example`). The general pool needs at least 4
+vCPU in total; `terraform plan` rejects smaller layouts.
 
 ## Costs
 

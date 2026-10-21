@@ -71,6 +71,16 @@ variable "general_pool" {
     condition     = var.general_pool.node_count >= 1 && var.general_pool.node_count <= 10
     error_message = "general_pool.node_count must be between 1 and 10."
   }
+
+  # The general pool hosts ~1.75 vCPU of workload requests (10 NFs, MongoDB,
+  # gNB, UEs, provisioning Job) plus GKE system Pods on every node. 4 vCPU in
+  # total is the verified minimum: 1 x e2-standard-4 or 2 x e2-standard-2.
+  # vCPUs are read from the machine type name (e2-standard-2 -> 2,
+  # n2-custom-4-16384 -> 4); shared-core types (e2-medium, ...) count as 0.
+  validation {
+    condition     = try(tonumber(regex("-custom-([0-9]+)-", var.general_pool.machine_type)[0]), tonumber(regex("^[a-z][a-z0-9]*-[a-z0-9]+-([0-9]+)", var.general_pool.machine_type)[0]), 0) * var.general_pool.node_count >= 4
+    error_message = "general_pool has too few vCPUs: at least 4 vCPU in total are needed (shared-core types such as e2-medium are not supported). If your organisation only allows e2-standard-2, use: general_pool = { machine_type = \"e2-standard-2\", node_count = 2 }."
+  }
 }
 
 variable "upf_pool" {
@@ -87,6 +97,13 @@ variable "upf_pool" {
   validation {
     condition     = var.upf_pool.node_count >= 1 && var.upf_pool.node_count <= 3
     error_message = "upf_pool.node_count must be between 1 and 3."
+  }
+
+  # Each UPF node runs the UPF (500m request), the gtp5g build and GKE system
+  # Pods; a dedicated (non-shared-core) 2-vCPU machine is the verified minimum.
+  validation {
+    condition     = try(tonumber(regex("-custom-([0-9]+)-", var.upf_pool.machine_type)[0]), tonumber(regex("^[a-z][a-z0-9]*-[a-z0-9]+-([0-9]+)", var.upf_pool.machine_type)[0]), 0) >= 2
+    error_message = "upf_pool.machine_type needs at least 2 dedicated vCPUs per node (e.g. e2-standard-2); shared-core types such as e2-medium are not supported."
   }
 }
 
