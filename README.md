@@ -1,4 +1,6 @@
 # free5GC + UERANSIM on GKE with Terraform
+[![ci](https://github.com/hamzaken/free5gc-gcp-terraform/actions/workflows/ci.yml/badge.svg)](https://github.com/hamzaken/free5gc-gcp-terraform/actions/workflows/ci.yml)
+
 
 A reproducible, security-conscious template that deploys a **5G Standalone
 core** ([free5GC](https://free5gc.org) v4.2.2) and a **simulated RAN with 10
