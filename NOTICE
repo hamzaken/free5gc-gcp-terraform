@@ -1,0 +1,18 @@
+free5gc-gcp-terraform
+Copyright 2026 hamzaken
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository contains modifications (helm/patches/*.patch) and adapted
+configuration values (helm/*.yaml.tftpl) derived from free5gc-helm
+(https://github.com/free5gc/free5gc-helm), licensed under the Apache License,
+Version 2.0:
+
+  Software Name : towards5gs-helm / free5gc-helm
+  Copyright (c) 2021 Orange
+  Copyright (c) the free5GC project contributors
+  SPDX-License-Identifier: Apache-2.0
+
+The upstream charts themselves are not redistributed: scripts/fetch-charts.sh
+downloads them from the upstream repository at a pinned commit and applies
+the patches locally. Each patch is described in helm/patches/README.md.

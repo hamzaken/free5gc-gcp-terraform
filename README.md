@@ -35,7 +35,7 @@ Engine**, using Terraform and the official free5GC Helm charts.
 
 ```mermaid
 flowchart LR
-  subgraph GKE["GKE Standard (europe-west9-a), private nodes, Dataplane V2"]
+  subgraph GKE["GKE Standard (zonal), private nodes, Dataplane V2"]
     subgraph gen["pool: general"]
       NRF & AMF & SMF & AUSF & UDM & UDR & PCF & NSSF & CHF & NEF
       DB[(MongoDB)]
@@ -171,13 +171,8 @@ kubernetes/gtp5g/    node-side gtp5g build-and-load script
 provisioning/        subscriber provisioner (mongosh)
 scripts/             validate, fetch-charts, bootstrap-secrets, deploy, verify, destroy
 tests/               render harness, manifest checks, IMSI and provisioner tests
-docs/                architecture, networking, security, deployment, testing, troubleshooting, article draft
+docs/                architecture, networking, security, deployment, testing, troubleshooting
 ```
-
-Changes from the suggested layout: two root modules instead of one (see
-architecture D1), two provider-less modules (`config`, `render`) so validation
-and rendering are testable offline, `kubernetes/` for the node script, and
-`docs/testing.md`.
 
 ## Versions
 
@@ -188,5 +183,18 @@ Full matrix and compatibility evidence: [architecture.md](docs/architecture.md#2
 
 ## Licence
 
-Apache-2.0 (same as the upstream charts). free5GC, UERANSIM and gtp5g are
-separate projects under their own licences.
+This repository is licensed under [Apache-2.0](LICENSE). The files in
+`helm/patches/` modify the official free5gc-helm charts (Apache-2.0,
+© Orange and the free5GC project); see [NOTICE](NOTICE).
+
+Third-party components are **downloaded at deploy time, not redistributed**
+by this repository, and keep their own licences:
+
+| Component | Licence | How it is used |
+|---|---|---|
+| [free5GC](https://github.com/free5gc/free5gc) network functions | Apache-2.0 | container images |
+| [free5gc-helm](https://github.com/free5gc/free5gc-helm) charts | Apache-2.0 | fetched at a pinned commit, patched locally |
+| [UERANSIM](https://github.com/aligungr/UERANSIM) | GPL-3.0 | container image |
+| [gtp5g](https://github.com/free5gc/gtp5g) kernel module | GPL-2.0 | source downloaded and compiled on the UPF node |
+| [MongoDB](https://github.com/mongodb/mongo) server | SSPL | container image (Bitnami) |
+| [Bitnami MongoDB chart](https://github.com/bitnami/charts) | Apache-2.0 | subchart of free5gc-helm |

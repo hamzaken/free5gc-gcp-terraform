@@ -4,7 +4,7 @@ This document records the research behind the design, the pinned versions,
 and every architectural decision with its rationale. Sources were inspected on
 2026-10-13; links point to the exact upstream files.
 
-## 1. Research findings (Phase 1)
+## 1. Research findings
 
 ### Upstream charts
 
