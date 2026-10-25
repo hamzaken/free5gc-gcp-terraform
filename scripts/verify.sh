@@ -68,7 +68,7 @@ mapfile_compat() {
 health() {
   log "== Deployment health =="
 
-  kubectl get nodes -L free5gc.io/pool \
+  kubectl get nodes \
     -o custom-columns='NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].status,POOL:.metadata.labels.free5gc\.io/pool,OS:.status.nodeInfo.osImage,KERNEL:.status.nodeInfo.kernelVersion,KUBELET:.status.nodeInfo.kubeletVersion' \
     | save nodes.txt >/dev/null
   local not_ready
